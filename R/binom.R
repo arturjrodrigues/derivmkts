@@ -27,9 +27,9 @@
 #'     putopt=FALSE, specifyupdn=FALSE, crr=FALSE, jarrowrudd=FALSE,
 #'     up=1.5, dn=0.5, returntrees=FALSE, returnparams=FALSE,
 #'     returngreeks=FALSE)
-#' 
+#'
 #' binomplot(s, k, v, r, tt, d, nstep, putopt=FALSE, american=TRUE,
-#'     plotvalues=FALSE, plotarrows=FALSE, drawstrike=TRUE,
+#'     plotvalues=FALSE, plotoptionvalues=FALSE, plotarrows=FALSE, drawstrike=TRUE,
 #'     pointsize=4, ylimval=c(0,0),
 #'     saveplot = FALSE, saveplotfn='binomialplot.pdf',
 #'     crr=FALSE, jarrowrudd=FALSE, titles=TRUE, specifyupdn=FALSE,
@@ -64,6 +64,7 @@
 #' @param returngreeks Return time 0 delta, gamma, and theta in the
 #'     vector \code{greeks}
 #' @param plotvalues display asset prices at nodes
+#' @param plotoptionvalues display option prices at nodes
 #' @param plotarrows draw arrows connecting pricing nodes
 #' @param drawstrike draw horizontal line at the strike price
 #' @param pointsize CEX parameter for nodes
@@ -77,31 +78,31 @@
 #'     returns the option price
 #' @param logy (FALSE). If \code{TRUE}, y-axis is plotted on a log
 #'     scale
-#' 
-#' @importFrom graphics lines plot par points abline arrows mtext text 
+#'
+#' @importFrom graphics lines plot par points abline arrows mtext text
 #' @importFrom grDevices dev.off pdf
-#' 
-#' @importFrom graphics lines plot par points abline arrows mtext text 
+#'
+#' @importFrom graphics lines plot par points abline arrows mtext text
 #' @importFrom grDevices dev.off pdf
-#' 
+#'
 #' @details By default, \code{binomopt} returns an option
 #'     price. Optionally, it returns a vector of the parameters used
 #'     to compute the price, and if \code{returntrees=TRUE} it can
 #'     also return the following matrices, all but but two of which
 #'     have dimensionality \eqn{(\textrm{nstep}+1)\times
 #'     (\textrm{nstep}+ 1)}{(nstep+1)*(nstep+1)}:
-#' 
+#'
 #' \describe{
-#' 
+#'
 #' \item{stree}{the binomial tree for the price of the underlying
 #'     asset.}
-#' 
+#'
 #' \item{oppricetree}{the binomial tree for the option price at each
 #'     node}
-#' 
+#'
 #' \item{exertree}{the tree of boolean indicators for whether or not
 #'     the option is exercisd at each node}
-#' 
+#'
 #' \item{probtree}{the probability of reaching each node}
 #'
 #' \item{delta}{at each node prior to expiration, the number of units
@@ -112,9 +113,9 @@
 #' \item{bond}{at each node prior to expiration, the bond position in
 #'     the replicating portfolio. The dimensionality is
 #'     \eqn{(\textrm{nstep})\times (\textrm{nstep})}{nstep*nstep}}
-#' 
+#'
 #' }
-#' 
+#'
 #' \code{binomplot} plots the stock price lattice and shows
 #' graphically the probability of being at each node (represented as
 #' the area of the circle at that price) and whether or not the option
@@ -133,9 +134,9 @@
 #'
 #' @examples
 #' s=40; k=40; v=0.30; r=0.08; tt=0.25; d=0; nstep=15
-#' 
+#'
 #' binomopt(s, k, v, r, tt, d, nstep, american=TRUE, putopt=TRUE)
-#' 
+#'
 #' binomopt(s, k, v, r, tt, d, nstep, american=TRUE, putopt=TRUE,
 #'     returnparams=TRUE)
 #'
@@ -145,12 +146,12 @@
 #' print(x$oppricretree)
 #' print(x$delta)
 #' print(x$bond)
-#' 
+#'
 #' binomplot(s, k, v, r, tt, d, nstep, american=TRUE, putopt=TRUE)
-#' 
+#'
 #' binomplot(s, k, v, r, tt, d, nstep, american=FALSE, putopt=TRUE)
-#' 
-#' 
+#'
+#'
 
 
 ## this matches fig 10.8 in the 3rd edition:
@@ -164,7 +165,7 @@ binomopt <- function(s, k, v, r, tt, d,
                      up=1.5, dn=0.5, returntrees=FALSE,
                      returnparams=FALSE, returngreeks=FALSE) {
     ## set up the binomial tree parameters
-    
+
     h <- tt/nstep
     if (!specifyupdn) {
         if (crr) {
@@ -211,7 +212,7 @@ binomopt <- function(s, k, v, r, tt, d,
             bondtree[1:i, i] <- exp(-r*h)*(up* Vc[2:(i+1), i+1] -
                                       dn*Vc[1:i, i+1])/(up-dn)
         }
-       
+
         delta <- deltatree[1, 1]
         if (nstep >= 2) {
             gamma <- (deltatree[1, 2] - deltatree[2, 2])/
@@ -251,6 +252,7 @@ binomopt <- function(s, k, v, r, tt, d,
 #' @export
 binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
                       american=TRUE, plotvalues=FALSE,
+                      plotoptionvalues=FALSE,
                       plotarrows=FALSE, drawstrike=TRUE, pointsize=4,
                       ylimval=c(0,0), saveplot = FALSE,
                       saveplotfn='binomialplot.pdf', crr=FALSE,
@@ -259,14 +261,15 @@ binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
                       returnprice=FALSE, logy=FALSE) {
     ## see binomopt for more details on tree
     ## construction. "plotvalues" shows stock price values;
+    ## "plotoptionvalues" shows option price values;
     ## "drawstrike" if true draws a line at the strike price; "probs"
     ## makes pointsizes proportional to probability of that point,
     ## times "pointsize"
     ##
     ## If no value given for ylimval and setylim=TRUE, there will be
     ## an error
-    ## 
-    
+    ##
+
     setylim <- ifelse((sum(ylimval^2)==0), FALSE, TRUE)
     y <- binomopt(s, k, v, r, tt, d, nstep, american, putopt,
                   specifyupdn, crr, jarrowrudd, up, dn,
@@ -282,12 +285,13 @@ binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
     exertree <- y$exertree
     oppricetree <- y$oppricetree
     probtree <- y$probtree
-    
+
     ## The rep command replicates each entry in nn a different number of
     ## times (1st entry once, second, entry twice, etc. Need to add 1
     ## because the first entry in nn is zero, which implies zero reps. The
     ## point of the stree restriction is not to plot zeros.
-    plotcolor <- ifelse(exertree,"green3","red")
+    plotcolor <- ifelse(exertree,rgb(0,1,0,.6),rgb(1,0,0,.6))
+    plotoptionvaluecolor <- ifelse(exertree,"green4","red4")
     if (saveplot) pdf(saveplotfn)
     ylim_default <- c(0 ,max(stree)*1.03)
     savepar <- par(no.readonly=TRUE)
@@ -300,7 +304,7 @@ binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
         ,pch=21
          ## ifelse returns an object with the size of the first
          ## argument. So in order for it to pass an array the first
-         ## argument is an array filled with the boolean "probs". 
+         ## argument is an array filled with the boolean "probs".
         ,cex=ifelse(stree[stree>0], sqrt(probtree[stree>0])*pointsize, 1)
         ,bg=plotcolor[stree>0] ## only matters for pch 21-25
         ,xlab=ifelse(titles, "Binomial Period", "")
@@ -317,8 +321,8 @@ binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
                     ," Price = ",format(oppricetree[1,1],digits=5)))
     if (drawstrike) abline(h=k)
 #    yoffset <- ifelse(setylim, 0.075*ylimval[1], 0.03*max(stree))
-    yoffset <- ifelse(setylim, 0.03*(ylimval[2]-ylimval[1]),
-                      0.03*max(stree))
+    yoffset <- ifelse(setylim, 0.025*(ylimval[2]-ylimval[1]),
+                      0.025*max(stree))
     if (plotarrows) {
         for (i in 1:nstep) {
             for (j in 1:i) {
@@ -331,6 +335,12 @@ binomplot <- function(s, k, v, r, tt, d, nstep, putopt=FALSE,
         for (i in 1:(nstep+1)) {
             text((i-1)*h,stree[1:i,i]+yoffset,format(stree[1:i,i], digits=3),
                  cex=0.7)
+        }
+    }
+    if (plotoptionvalues) {
+        for (i in 1:(nstep+1)) {
+            text((i-1)*h,stree[1:i,i]-yoffset,format(oppricetree[1:i,i], digits=3),
+                 cex=0.7, col=plotoptionvaluecolor[1:i,i])
         }
     }
     if (saveplot) dev.off()
